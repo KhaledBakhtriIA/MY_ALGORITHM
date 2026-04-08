@@ -26,6 +26,11 @@ def encode(text, vocab):
     return [vocab.get(token, unk_id) for token in tokenize_words(text)]
 
 
+def build_id_to_token(vocab):
+    """Reverse a given vocabulary mapping from token-to-id into id-to-token."""
+    return {v: k for k, v in vocab.items()}
+
+
 def decode(token_ids, id_to_token):
     """Convert token ids back into a space-separated token string."""
     return " ".join(id_to_token.get(token_id, "<UNK>") for token_id in token_ids)

@@ -11,6 +11,10 @@ Available classes/objects
 - `embed_sequence(token_ids)`:
   - Takes an inputted list of token sequence IDs from the tokenizer and maps them out to floating-point vectors on the embedding matrix.
 
+Future Roadmap (Backpropagation / Learning)
+- Currently, embeddings are initialized as random weights and do not update. There is no real meaning encoded yet without training.
+- Future implementations will require an `update(self, token_id, gradient, learning_rate)` method to perform gradient descent on the matrix vectors.
+
 Modification Log (2026-04-08)
 1. Read the `embeddings.md` instructions and goals.
 2. Created standard Python implementations for `embeddings.py` (avoiding complex external dependencies for now). 

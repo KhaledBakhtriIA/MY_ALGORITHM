@@ -4,6 +4,7 @@ from attention import SelfAttention
 from node import PerspectiveNode
 from run_nodes import run_all_nodes
 from synthesizer import synthesize
+from output_layer import OutputProjection
 
 def main():
     print("1. Initializing pipeline & setting up shared modules...")
@@ -26,6 +27,7 @@ def main():
     # Shared Core Intelligence and Maps
     embedding_map = EmbeddingMap(vocab_size, embedding_dim)
     attention_module = SelfAttention(embedding_dim)
+    output_projection = OutputProjection(embedding_dim, vocab_size)
 
     # Define the 6 unique system prompts (perspectives) 
     print("2. Defining the 6 perspective nodes...")
@@ -61,7 +63,12 @@ def main():
     print("4. The Convergence: Synthesizing vectors into final bonded output...")
     final_output = synthesize(node_results)
 
-    print(f"5. Pipeline Complete. Final representation shape: {len(final_output)} tokens * {embedding_dim} dim vectors.")
+    print(f"5. The Projection: Generating contextual response from synthesized representation layers...")
+    generated_text = output_projection.generate_tokens(final_output, vocab)
+    
+    print("\n--- FORWARD PASS COMPLETE ---")
+    print(f"Input Query:     '{input_query}'")
+    print(f"Final Model Output: '{generated_text}'\n")
 
 if __name__ == "__main__":
     main()
