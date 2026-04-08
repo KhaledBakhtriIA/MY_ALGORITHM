@@ -1,0 +1,1 @@
+the conductor it takes improts everything and run the full pipe line form row text for final sythenised output  
