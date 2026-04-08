@@ -22,4 +22,7 @@ def run_all_nodes(nodes, input_data):
             except Exception as exc:
                 print(f"Node {node.name} generated an exception: {exc}")
                 
+    # Sort results by node name to ensure predictable order for the synthesizer
+    results.sort(key=lambda x: x["name"])
+    
     return results
