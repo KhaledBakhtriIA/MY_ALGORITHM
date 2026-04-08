@@ -1,41 +1,26 @@
 import math
 
-def cross_entropy_loss(logits, target_id):
+def cross_entropy_loss(predictions, targets):
     """
-    Calculates the cross-entropy loss for a single token prediction.
-    Measures how 'wrong' the raw logits are compared to the actual target token ID.
-    Higher values mean the model was more wrong. Values close to 0 mean it was very confident and correct.
+    Calculates the cross-entropy loss for a sequence.
+    predictions: A list of probability distributions (one list of probabilities per position).
+    targets: A list of the correct token IDs for each position.
+    
+    Returns a single average loss number for the sequence.
     """
-    if not logits:
+    if not predictions or not targets:
         return 0.0
         
-    # 1. Calculate softmax probabilities (with max subtraction for numerical stability)
-    max_logit = max(logits)
-    exp_logits = [math.exp(l - max_logit) for l in logits]
-    sum_exp = sum(exp_logits)
-    
-    # Probability assigned to the correct target class
-    p_target = exp_logits[target_id] / sum_exp
-    
-    # 2. Add tiny epsilon to prevent log(0) errors
-    epsilon = 1e-15
-    
-    # 3. Return negative log likelihood
-    return -math.log(p_target + epsilon)
-
-
-def sequence_loss(sequence_logits, target_ids):
-    """
-    Calculates the average cross-entropy loss across an entire sequence.
-    """
-    if not sequence_logits or not target_ids:
-        return 0.0
-    
     total_loss = 0.0
-    valid_steps = min(len(sequence_logits), len(target_ids))
+    valid_steps = min(len(predictions), len(targets))
+    epsilon = 1e-15  # Add tiny epsilon to prevent log(0) errors
     
     for i in range(valid_steps):
-        step_loss = cross_entropy_loss(sequence_logits[i], target_ids[i])
+        target_token = targets[i]
+        predicted_probability = predictions[i][target_token]
+        
+        # for each position: loss = -log(predicted_probability)
+        step_loss = -math.log(predicted_probability + epsilon)
         total_loss += step_loss
         
     return total_loss / valid_steps if valid_steps > 0 else 0.0

@@ -4,8 +4,8 @@ from attention import SelfAttention
 from node import PerspectiveNode
 from run_nodes import run_all_nodes
 from synthesizer import synthesize
-from output_layer import OutputProjection
-from loss import sequence_loss
+from output_layer import OutputProjection, softmax
+from loss import cross_entropy_loss
 from backprop import backpropagate_step
 
 def run_training_loop():
@@ -85,7 +85,8 @@ def run_training_loop():
             sequence_logits.append(logits)
             
         # --- LOSS CALCULATION ---
-        loss = sequence_loss(sequence_logits, target_ids)
+        sequence_probs = [softmax(logits) for logits in sequence_logits]
+        loss = cross_entropy_loss(sequence_probs, target_ids)
         
         # --- BACKWARD PASS ---
         valid_steps = min(len(sequence_logits), len(target_ids))
