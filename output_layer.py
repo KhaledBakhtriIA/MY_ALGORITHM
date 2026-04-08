@@ -59,6 +59,29 @@ class OutputProjection:
                 logits[v_idx] += val * weight_row[v_idx]
         return logits
 
+    def backward(self, vector, d_logits, learning_rate):
+        """
+        Backpropagates through the projection layer.
+        Given the gradient of the loss with respect to logits (d_logits),
+        it updates the projection matrix and calculates the gradient with 
+        respect to the input vector (d_vector) to pass backward.
+        """
+        d_vector = [0.0] * self.embedding_dim
+        
+        # We need to evaluate every vocabulary logit derivative
+        for v_idx in range(self.vocab_size):
+            d_l = d_logits[v_idx]
+            
+            for dim in range(self.embedding_dim):
+                # Accumulate the gradient for the incoming vector
+                d_vector[dim] += d_l * self.matrix[dim][v_idx]
+                
+                # Perform the gradient descent update on the weights!
+                # Weight gradient = d_logit * input_vector
+                self.matrix[dim][v_idx] -= learning_rate * d_l * vector[dim]
+                
+        return d_vector
+
     def generate_tokens(self, vectors, vocab, temperature=1.0):
         """
         Takes the synthesized output vectors and selects tokens dynamically

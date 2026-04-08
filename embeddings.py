@@ -36,3 +36,15 @@ class EmbeddingMap:
             vectors.append(self.matrix[token_id])
             
         return vectors
+
+    def update(self, token_id, gradient, learning_rate):
+        """
+        Backpropagation update step.
+        Adjusts the embedding vector for a specific token based on the error gradient.
+        """
+        # Ensure we stay in bounds just like the forward pass
+        if token_id < 0 or token_id >= self.vocab_size:
+            token_id = 1
+            
+        for dim in range(self.embedding_dim):
+            self.matrix[token_id][dim] -= learning_rate * gradient[dim]
