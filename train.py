@@ -21,7 +21,28 @@ def run_training_loop():
         input_query,
         target_response,
         "padding words to make vocabulary larger",
-        "more text for embeddings"
+        "more text for embeddings",
+        "artificial intelligence algorithms can learn complex patterns",
+        "deep neural networks require massive amounts of structured text",
+        "the universe is vast and expands constantly through space and time",
+        "philosophical thought questions the very nature of human existence",
+        "pragmatic approaches focus on actionable realistic execution steps",
+        "optimists believe in positive potential and future opportunities",
+        "pessimists identify risks flaws constraints and inevitable failures",
+        "data analysts look purely at facts numbers logical sequences",
+        "innovators think outside the box and suggest novel paradigms",
+        "machine learning models process vectors matrices and continuous floating point numbers",
+        "gradient descent minimizes the loss function over multiple training epochs",
+        "cross entropy measures the difference between probability distributions",
+        "attention mechanisms calculate the relevance of different tokens in a sequence",
+        "synthesizing multiple perspectives yields a more balanced and robust conclusion",
+        "the quick brown fox jumps over the lazy dog",
+        "natural language processing bridges the gap between computers and human communication",
+        "understanding context and semantics is crucial for accurate translation",
+        "software engineering involves writing testing and maintaining code",
+        "open source repositories host millions of projects worldwide",
+        "the internet connects billions of devices allowing seamless information exchange",
+        "cybersecurity protects networks systems and programs from digital attacks"
     ]
     vocab = build_vocab(corpus)
     vocab_size = len(vocab)

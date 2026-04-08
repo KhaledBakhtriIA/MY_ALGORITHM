@@ -18,4 +18,5 @@ Modification Log (2026-04-08)
 3. Linked previously coded dependencies smoothly into a central graph.
 4. Created 6 explicit perspectives as intended by the architectural design model.
 5. Output console trackers dynamically reading shapes and sequence lengths representing functional end-to-end data passage natively.
-6. Noted exact integration mapping inside `main.md` mapping file modifications.  
+6. Expanded the training corpus significantly to inject around ~150 distinct words establishing a far more robust vocabulary baseline for embeddings to learn distinct meanings from.
+7. Noted exact integration mapping inside `main.md` mapping file modifications.  

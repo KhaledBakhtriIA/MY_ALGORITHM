@@ -18,3 +18,4 @@ Modification Log (2026-04-08)
 2. Drafted an independent `train.py` wrapper to run training phases repeatedly.
 3. Hooked up the `backpropagate_step` utility inside the loop structure to push errors downward backwards into the embedding map and output linear layers appropriately.
 4. Demonstrated the iterative gradient descent mechanism showing raw random text collapsing into identical targeted texts visually within ~200 iterations!
+5. Significantly expanded the `corpus` list with 20+ deeply diverse sentences spanning technology, math, and philosophy to create a meaningful baseline vocabulary size capable of truly distinguishing tokens.
