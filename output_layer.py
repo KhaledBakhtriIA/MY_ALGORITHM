@@ -2,6 +2,29 @@ import math
 import random
 from tokenizer import decode, build_id_to_token
 
+def softmax(logits):
+    if not logits:
+        return []
+    max_logit = max(logits)
+    exp_logits = [math.exp(l - max_logit) for l in logits]
+    sum_exp = sum(exp_logits)
+    return [l / sum_exp for l in exp_logits]
+
+def sample_token(probabilities, temperature=1.0):
+    # scale probabilities by temperature
+    scaled = [p ** (1.0 / temperature) for p in probabilities]
+    total = sum(scaled)
+    normalized = [p / total for p in scaled]
+    
+    # random sample instead of always picking max
+    r = random.random()
+    cumulative = 0.0
+    for i, p in enumerate(normalized):
+        cumulative += p
+        if r <= cumulative:
+            return i
+    return len(normalized) - 1
+
 class OutputProjection:
     """
     Final step of the forward pass: maps the generated continuous vectors 
@@ -36,18 +59,19 @@ class OutputProjection:
                 logits[v_idx] += val * weight_row[v_idx]
         return logits
 
-    def generate_tokens(self, vectors, vocab):
+    def generate_tokens(self, vectors, vocab, temperature=1.0):
         """
-        Takes the synthesized output vectors and selects the most likely 
-        token per position (argmax) to construct the final output phrase.
+        Takes the synthesized output vectors and selects tokens dynamically
+        using temperature sampling to construct the final output phrase.
         """
         id_to_token = build_id_to_token(vocab)
         output_ids = []
         
         for vector in vectors:
             logits = self.project(vector)
-            # Find the ID with the highest matching logit (argmax)
-            best_id = max(range(len(logits)), key=lambda i: logits[i])
+            probabilities = softmax(logits)
+            # Use temperature sampling to avoid greedy collapse (e.g. constant repeats)
+            best_id = sample_token(probabilities, temperature=temperature)
             output_ids.append(best_id)
             
         return decode(output_ids, id_to_token)

@@ -18,5 +18,6 @@ Modification Log (2026-04-08)
 1. Established that the forward pass terminates at sequence vectors instead of readable output.
 2. Created a purely forward translation linear projection layer directly mapping vector `embedding_dim -> vocab_layer`.
 3. Created an isolated logit weighting structure mimicking typical linear ML classification heads.
-4. Leveraged argmax evaluation to determine best-fit word approximations without external complex non-native dependencies.
-5. Imported and integrated backwards un-tokenizing directly against the core main conductor file to close the system loop gracefully.
+4. Initially leveraged argmax evaluation to determine best-fit word approximations, but this resulted in typical generative text "collapses" (repeat constant words like "and and and" due to untrained embeddings and greedy logic).
+5. Interjected a `softmax` array conversion alongside a `sample_token` temperature sampling mechanic. The model now draws words probabilistically instead of using absolute argmax, preventing identical outputs per line.
+6. Imported and integrated backwards un-tokenizing directly against the core main conductor file to close the system loop gracefully.
