@@ -16,3 +16,4 @@ Modification Log (2026-04-08)
 2. Refactored `loss.py` to match the exact mathematical standard specified: a single `cross_entropy_loss(predictions, targets)` taking strictly probability distributions instead of raw logits, looping over length, extracting `target_token` probability, and evaluating `-log(predicted_probability)` per positional guess.
 3. Updated `train.py` to calculate Softmax probability matrices inside the loop before passing arrays to the new unified loss function wrapper.
 4. Reflected strict API requirement constraint compliance inside this document.
+5. (2026-04-10) Fixed sequence lengths misalignment where `valid_steps` arbitrarily cut off loss signal due to `min(len)` condition; updated to process up to `max(len)` with bounded array access to evaluate all available targets.

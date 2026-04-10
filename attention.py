@@ -1,60 +1,129 @@
-import math
-
-def dot_product(v1, v2):
-    return sum(x * y for x, y in zip(v1, v2))
-
-def softmax(scores):
-    if not scores:
-        return []
-    max_score = max(scores)  # for numerical stability
-    exp_scores = [math.exp(s - max_score) for s in scores]
-    sum_exp = sum(exp_scores)
-    return [s / sum_exp for s in exp_scores]
+import numpy as np
 
 class SelfAttention:
     """
     Core intelligence module that computes relevance (resemblance) 
-    between tokens across the data sequence using scaled dot-product attention.
+    between tokens across the data sequence using scaled dot-product attention
+    optimized with NumPy.
     """
     def __init__(self, embedding_dim):
         self.embedding_dim = embedding_dim
+        # Initialize learnable weights for Q, K, V
+        limit = np.sqrt(6 / (embedding_dim + embedding_dim))
+        self.W_q = np.random.uniform(-limit, limit, (embedding_dim, embedding_dim))
+        self.W_k = np.random.uniform(-limit, limit, (embedding_dim, embedding_dim))
+        self.W_v = np.random.uniform(-limit, limit, (embedding_dim, embedding_dim))
+        self.cache = {} # Cache for backward pass
         
     def compute(self, vectors):
         """
         Given a sequence of vectors, computes the self-attention representation.
         Returns a new sequence of vectors of the same dimension.
         """
-        seq_len = len(vectors)
-        if seq_len == 0:
+        if len(vectors) == 0:
             return []
             
-        d_k = len(vectors[0])
-        scale = math.sqrt(d_k) if d_k > 0 else 1.0
+        x = np.array(vectors) # (seq_len, d_k)
         
-        output_vectors = []
+        # Linear projections
+        Q = np.dot(x, self.W_q)
+        K = np.dot(x, self.W_k)
+        V = np.dot(x, self.W_v)
         
-        # For each token vector (acting as Query)
-        for i in range(seq_len):
-            query = vectors[i]
+        scale = np.sqrt(Q.shape[-1])
+        
+        # 1. Similarity Scores
+        scores = np.dot(Q, K.T) / scale # (seq_len, seq_len)
+        
+        # 2. Softmax
+        # numerically stable softmax along the last axis
+        max_scores = np.max(scores, axis=-1, keepdims=True)
+        exp_scores = np.exp(scores - max_scores)
+        attention_weights = exp_scores / np.sum(exp_scores, axis=-1, keepdims=True)
+        
+        # 3. Context Vectors
+        context = np.dot(attention_weights, V) # (seq_len, d_k)
+        
+        output_pre_norm = context + x  # residual connection
+        
+        # layer normalization
+        mean = np.mean(output_pre_norm, axis=-1, keepdims=True)
+        var = np.var(output_pre_norm, axis=-1, keepdims=True)
+        std = np.sqrt(var + 1e-8)
+        output = (output_pre_norm - mean) / std
+        
+        # Cache for backprop
+        self.cache = {
+            "x": x, "Q": Q, "K": K, "V": V,
+            "attention_weights": attention_weights,
+            "scale": scale,
+            "output_pre_norm": output_pre_norm,
+            "mean": mean,
+            "std": std
+        }
+        
+        return output.tolist()
+
+    def backward(self, d_out, learning_rate):
+        """
+        Proper backpropagation through the self-attention layer.
+        """
+        d_out = np.array(d_out)
+        if d_out.size == 0 or not self.cache:
+            return []
             
-            # 1. Compute resemblance scores with all other tokens (Keys)
-            raw_scores = []
-            for j in range(seq_len):
-                key = vectors[j]
-                score = dot_product(query, key) / scale
-                raw_scores.append(score)
-                
-            # 2. Apply softmax to get normalized attention weights
-            attention_weights = softmax(raw_scores)
-            
-            # 3. Compute weighted sum of all tokens (Values)
-            context_vector = [0.0] * d_k
-            for j in range(seq_len):
-                weight = attention_weights[j]
-                value = vectors[j]
-                for dim in range(d_k):
-                    context_vector[dim] += weight * value[dim]
-                    
-            output_vectors.append(context_vector)
-            
-        return output_vectors
+        x = self.cache["x"]
+        Q = self.cache["Q"]
+        K = self.cache["K"]
+        V = self.cache["V"]
+        P = self.cache["attention_weights"]
+        scale = self.cache["scale"]
+        output_pre_norm = self.cache["output_pre_norm"]
+        mean = self.cache["mean"]
+        std = self.cache["std"]
+        
+        N = x.shape[-1]
+        
+        # d_out is dL/dY, shape (seq_len, d_k)
+        # Backprop through layer normalization
+        # Let's say dY = d_out
+        # dX_norm component
+        d_out_pre_norm = (1. / std) * (
+            d_out - np.mean(d_out, axis=-1, keepdims=True) - 
+            ((output_pre_norm - mean) / (std ** 2)) * np.mean(d_out * (output_pre_norm - mean), axis=-1, keepdims=True)
+        )
+        
+        # Backprop through residual connection
+        # dL/dcontext = d_out_pre_norm
+        # dL/dx = d_out_pre_norm (plus updates from Q, K, V later)
+        d_context = d_out_pre_norm
+        
+        # dL/dV
+        dV = np.dot(P.T, d_context)
+        
+        # dL/dP 
+        dP = np.dot(d_context, V.T)
+        
+        # dL/dS (where S is the pre-softmax scores)
+        sum_dP_P = np.sum(dP * P, axis=-1, keepdims=True)
+        dS = P * (dP - sum_dP_P)
+        
+        # dL/dQ and dL/dK
+        dQ = np.dot(dS, K) / scale
+        dK = np.dot(dS.T, Q) / scale
+        
+        # Weight gradients
+        dW_q = np.dot(x.T, dQ)
+        dW_k = np.dot(x.T, dK)
+        dW_v = np.dot(x.T, dV)
+        
+        # Input gradients (Residual path + Q,K,V path)
+        dX = d_out_pre_norm + np.dot(dQ, self.W_q.T) + np.dot(dK, self.W_k.T) + np.dot(dV, self.W_v.T)
+        
+        # Update weights
+        self.W_q -= learning_rate * dW_q
+        self.W_k -= learning_rate * dW_k
+        self.W_v -= learning_rate * dW_v
+        
+        return dX.tolist()
+

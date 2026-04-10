@@ -12,15 +12,18 @@ def cross_entropy_loss(predictions, targets):
         return 0.0
         
     total_loss = 0.0
-    valid_steps = min(len(predictions), len(targets))
+    steps = max(len(predictions), len(targets))
     epsilon = 1e-15  # Add tiny epsilon to prevent log(0) errors
     
-    for i in range(valid_steps):
-        target_token = targets[i]
-        predicted_probability = predictions[i][target_token]
+    for i in range(steps):
+        pred_idx = min(i, len(predictions) - 1)
+        t_idx = min(i, len(targets) - 1)
+        
+        target_token = targets[t_idx]
+        predicted_probability = predictions[pred_idx][target_token]
         
         # for each position: loss = -log(predicted_probability)
         step_loss = -math.log(predicted_probability + epsilon)
         total_loss += step_loss
         
-    return total_loss / valid_steps if valid_steps > 0 else 0.0
+    return total_loss / steps if steps > 0 else 0.0

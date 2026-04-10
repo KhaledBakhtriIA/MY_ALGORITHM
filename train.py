@@ -6,7 +6,7 @@ from run_nodes import run_all_nodes
 from synthesizer import synthesize
 from output_layer import OutputProjection, softmax
 from loss import cross_entropy_loss
-from backprop import backpropagate_step
+from backprop import backpropagate_step_sequence
 
 def run_training_loop():
     print("1. Initializing Training Environment...")
@@ -53,7 +53,6 @@ def run_training_loop():
     
     # Initialize Parameters
     embedding_map = EmbeddingMap(vocab_size, embedding_dim)
-    attention_module = SelfAttention(embedding_dim)
     output_projection = OutputProjection(embedding_dim, vocab_size)
     
     # Setup specific perspectives
@@ -66,7 +65,8 @@ def run_training_loop():
     
     nodes = []
     for name, prompt in prompts.items():
-        nodes.append(PerspectiveNode(name, prompt, vocab, embedding_map, attention_module))
+        node_attention = SelfAttention(embedding_dim)
+        nodes.append(PerspectiveNode(name, prompt, vocab, embedding_map, node_attention))
 
     epochs = 200
     learning_rate = 0.05
@@ -89,32 +89,38 @@ def run_training_loop():
         loss = cross_entropy_loss(sequence_probs, target_ids)
         
         # --- BACKWARD PASS ---
-        valid_steps = min(len(sequence_logits), len(target_ids))
-        for i in range(valid_steps):
-            vec = final_vectors[i]
-            logits = sequence_logits[i]
-            t_id = target_ids[i]
-            
-            # Determine which input token embedding gets updated 
-            # (In a full scale architecture, attention passes gradients exactly to their originating source targets.
-            # Here we map directly to the corresponding input sequence index as an educational abstraction representation).
-            in_id = input_ids[i] if i < len(input_ids) else 0
-            
-            backpropagate_step(
-                output_projection=output_projection,
-                embedding_map=embedding_map,
-                input_token_id=in_id,
-                vector=vec,
-                logits=logits,
-                target_id=t_id,
-                learning_rate=learning_rate
-            )
+        # Match lengths safely
+        steps = min(len(sequence_logits), len(target_ids))
+        
+        # Process the entire sequence backwards uniformly
+        seq_vecs = final_vectors[:steps]
+        seq_logits = sequence_logits[:steps]
+        seq_t_ids = target_ids[:steps]
+        
+        seq_in_ids = []
+        for i in range(steps):
+            seq_in_ids.append(input_ids[min(i, len(input_ids) - 1)])
+
+        backpropagate_step_sequence(
+            output_projection=output_projection,
+            embedding_map=embedding_map,
+            nodes=nodes,
+            input_token_ids=seq_in_ids,
+            vectors=seq_vecs,
+            logits_seq=seq_logits,
+            target_ids=seq_t_ids,
+            learning_rate=learning_rate
+        )
             
         # --- LOGGING ---
         if epoch % 20 == 0 or epoch == epochs - 1:
-            # We use a very low temperature here just to observe the most confident prediction the model has learned
             output_text = output_projection.generate_tokens(final_vectors, vocab, temperature=0.1)
             print(f"Epoch {epoch:03d} | Loss: {loss:.4f} | Prediction: {output_text}")
+            import numpy as np
+            print(f"W_q mean: {np.mean(np.abs(nodes[0].attention_module.W_q)):.6f}")
+            print(f"W_k mean: {np.mean(np.abs(nodes[0].attention_module.W_k)):.6f}")
+            print(f"W_v mean: {np.mean(np.abs(nodes[0].attention_module.W_v)):.6f}")
 
 if __name__ == "__main__":
     run_training_loop()
+
