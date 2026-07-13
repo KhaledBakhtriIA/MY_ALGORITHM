@@ -82,18 +82,26 @@ class OutputProjection:
                 
         return d_vector
 
-    def generate_tokens(self, vectors, vocab, temperature=1.0):
+    def generate_tokens(self, vectors, vocab, temperature=1.0, rep_penalty=1.5):
         """
         Takes the synthesized output vectors and selects tokens dynamically
         using temperature sampling to construct the final output phrase.
+        Includes a repetition penalty to avoid endless repeating loops.
         """
         id_to_token = build_id_to_token(vocab)
         output_ids = []
         
         for vector in vectors:
             logits = self.project(vector)
+            
+            # Penalize tokens already generated in the sequence
+            for prev_idx in set(output_ids):
+                if logits[prev_idx] > 0:
+                    logits[prev_idx] /= rep_penalty
+                else:
+                    logits[prev_idx] *= rep_penalty
+                    
             probabilities = softmax(logits)
-            # Use temperature sampling to avoid greedy collapse (e.g. constant repeats)
             best_id = sample_token(probabilities, temperature=temperature)
             output_ids.append(best_id)
             

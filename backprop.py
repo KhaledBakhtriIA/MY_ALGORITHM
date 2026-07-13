@@ -25,16 +25,21 @@ def backpropagate_step_sequence(output_projection, embedding_map, nodes, input_t
         d_vec = output_projection.backward(vec, d_logit, learning_rate)
         d_vectors.append(d_vec)
         
-    # Step 3: Backpropagate through self-attentions (one per PerspectiveNode)
+    # Step 3: Backpropagate through FFN and self-attentions
     # The synthesizer merged the nodes by averaging.
     n_nodes = len(nodes)
     d_vectors_split = [[v / n_nodes for v in vec] for vec in d_vectors]
     
     all_d_attentions = []
     for node in nodes:
-        d_attention = node.attention_module.backward(d_vectors_split, learning_rate)
-        if d_attention:
-            all_d_attentions.append(d_attention)
+        # 3a. Pass gradients back through the feed-forward network
+        d_ffn = node.feed_forward_module.backward(d_vectors_split, learning_rate)
+        
+        # 3b. Pass those gradients back through attention
+        if d_ffn:
+            d_attention = node.attention_module.backward(d_ffn, learning_rate)
+            if d_attention:
+                all_d_attentions.append(d_attention)
             
     # Step 4: Update Embeddings
     # Embeddings are shared across nodes, so we sum the gradients

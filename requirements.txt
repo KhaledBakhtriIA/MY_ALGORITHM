@@ -1,0 +1,7 @@
+# Core (from-scratch NumPy track: main.py, train.py)
+numpy>=1.24
+
+# PyTorch reference track (model_pt.py, train_pt.py) and interactive chat (chat.py)
+torch>=2.0
+gensim>=4.3
+pyspellchecker>=0.8

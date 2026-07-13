@@ -18,4 +18,5 @@ Modification Log (2026-04-08)
 2. Created standard Python class implementation in `node.py`. 
 3. Connected previous modules: `tokenizer.encode`, `EmbeddingMap`, and `SelfAttention`.
 4. Orchestrated pipeline sequentially per node: combine text -> encode IDs -> embed sequences -> compute attention.
-5. Documented modification updates systematically tracking today's progress per user preference. 
+5. Documented modification updates systematically tracking today's progress per user preference.
+6. (2026-04-13) Implemented `RelationalPerspectiveNode` within `node.py`. It is an upgraded node which acts to model relationships between concepts rather than specific concepts themselves. It has an internal `relation_memory` and encodes pairs using a custom linear translation mapper (`self.W_rel` and `self.b_rel`). Uses cosine similarity to retrieve closest matching stored relationships when queried with single concept queries. 

@@ -73,6 +73,13 @@ class SelfAttention:
             return []
             
         x = self.cache["x"]
+        
+        # Ensure d_out matches the sequence length of x
+        if d_out.shape[0] < x.shape[0]:
+            padding = np.zeros((x.shape[0] - d_out.shape[0], d_out.shape[1]))
+            d_out = np.vstack([d_out, padding])
+        elif d_out.shape[0] > x.shape[0]:
+            d_out = d_out[:x.shape[0], :]
         Q = self.cache["Q"]
         K = self.cache["K"]
         V = self.cache["V"]
@@ -116,6 +123,18 @@ class SelfAttention:
         dW_q = np.dot(x.T, dQ)
         dW_k = np.dot(x.T, dK)
         dW_v = np.dot(x.T, dV)
+        
+        # Gradient clipping (analogous to torch.nn.utils.clip_grad_norm_)
+        max_norm = 1.0
+        # Compute global norm of these gradients
+        total_norm = np.sqrt(np.sum(dW_q**2) + np.sum(dW_k**2) + np.sum(dW_v**2) + 1e-6)
+        # Uncomment to debug vanishing gradients: 
+        # print(f"Attention Total Grad Norm: {total_norm:.6f}")
+        if total_norm > max_norm:
+            clip_coef = max_norm / (total_norm + 1e-6)
+            dW_q *= clip_coef
+            dW_k *= clip_coef
+            dW_v *= clip_coef
         
         # Input gradients (Residual path + Q,K,V path)
         dX = d_out_pre_norm + np.dot(dQ, self.W_q.T) + np.dot(dK, self.W_k.T) + np.dot(dV, self.W_v.T)
